@@ -9118,6 +9118,30 @@ fn extract_if_condition_first_time_tapped_pattern() {
     assert_eq!("untap it", cleaned);
 }
 
+/// CR 603.4 + CR 500.1: Captain America, Living Legend — "Whenever a creature
+/// you control becomes tapped during your turn, if it's the first time that
+/// creature has become tapped this turn, untap it." The trailing "during your
+/// turn" on the event clause restricts the Taps trigger to the controller's
+/// turn; dropping it lets the untap fire on opponents' turns too (issue #5325).
+#[test]
+fn trigger_becomes_tapped_during_your_turn_sets_only_during_your_turn() {
+    let def = parse_trigger_line(
+        "Whenever a creature you control becomes tapped during your turn, if it's the first time that creature has become tapped this turn, untap it.",
+        "Captain America, Living Legend",
+    );
+    assert_eq!(def.mode, TriggerMode::Taps);
+    assert_eq!(
+        def.condition,
+        Some(TriggerCondition::FirstTimeObjectTappedThisTurn),
+        "first-tap intervening-if must survive the 'during your turn' qualifier"
+    );
+    assert_eq!(
+        def.constraint,
+        Some(TriggerConstraint::OnlyDuringYourTurn),
+        "the 'during your turn' qualifier must set OnlyDuringYourTurn so the untap fires only on the controller's turn"
+    );
+}
+
 #[test]
 fn trigger_enchanted_land_is_tapped_for_mana() {
     let def = parse_trigger_line(

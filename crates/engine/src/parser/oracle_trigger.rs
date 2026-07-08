@@ -9267,6 +9267,19 @@ fn try_parse_event(
             SimpleEvent::BecomesTapped => {
                 def.mode = TriggerMode::Taps;
                 def.valid_card = Some(subject.clone());
+                // CR 500.1 + CR 603.4: a trailing "during your turn" / "during an
+                // opponent's turn" qualifier on the trigger event restricts the
+                // Taps trigger to that player's turn. Captain America, Living
+                // Legend ("Whenever a creature you control becomes tapped during
+                // your turn, ...") must fire only on the controller's turn;
+                // dropping the qualifier lets the untap fire on opponents' turns
+                // too (issue #5325). The intervening-if condition
+                // ("if it's the first time ...") is extracted separately from the
+                // effect text, so `remaining` here is only the turn qualifier.
+                let (leftover, turn_constraint) = peel_trailing_turn_constraint(remaining);
+                if turn_constraint.is_some() && leftover.trim().is_empty() {
+                    def.constraint = turn_constraint;
+                }
             }
             SimpleEvent::TappedForMana => {
                 def.mode = TriggerMode::TapsForMana;
